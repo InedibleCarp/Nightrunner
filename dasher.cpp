@@ -1,13 +1,14 @@
 #include "raylib.h"
 
 int main(){
-    int window_width{800};
-    int window_height{450};
+    const int window_width{512};
+    const int window_height{380};
 
     InitWindow(window_width, window_height, "Nightrunner");
     
     SetTargetFPS(60);
 
+    // main game loop
     while(!WindowShouldClose()){
         BeginDrawing();
         ClearBackground(WHITE);
