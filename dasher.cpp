@@ -9,9 +9,17 @@ int main(){
     // acceleration due to gravity in (prixels/frame)/frame
     const int gravity{1};
 
-    // rectangle dimensions
-    const int width{50};
-    const int height{80};
+    // player sprite variables
+    Texture2D player = LoadTexture("textures/scarfy.png");
+    Rectangle player_rec;
+    player_rec.width = player.width / 6;
+    player_rec.height = player.height;
+    player_rec.x = 0;
+    player_rec.y = 0;
+    Vector2 player_pos;
+    player_pos.x = (window_width / 2) - (player_rec.width / 2);
+    player_pos.y = window_height - player_rec.height;
+
     
     // is the rectangle in the air
     bool is_in_air{false};
@@ -19,8 +27,6 @@ int main(){
     // jump velocity
     const int jump_vel{-22};
 
-
-    int posY{window_height - height};
     int velocity{0};
     
     SetTargetFPS(60);
@@ -31,7 +37,7 @@ int main(){
         ClearBackground(WHITE);
 
         // perform ground check
-        if (posY >= window_height - height){
+        if (player_pos.y >= window_height - player_rec.height){
             // rectangle is on the ground
             velocity = 0;
             is_in_air = false;
@@ -47,9 +53,9 @@ int main(){
         }
         
         // update position
-        posY += velocity;
+        player_pos.y += velocity;
 
-        DrawRectangle(window_width / 2, posY, width, height, BLUE);
+        DrawTextureRec(player, player_rec, player_pos, WHITE);
 
         EndDrawing();
     }
