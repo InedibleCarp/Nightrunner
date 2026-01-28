@@ -6,8 +6,8 @@ int main(){
 
     InitWindow(window_width, window_height, "Nightrunner");
 
-    // acceleration due to gravity in (prixels/frame)/frame
-    const int gravity{1};
+    // acceleration due to gravity in (prixels/second)/second
+    const int gravity{1000};
 
     // player sprite variables
     Texture2D player = LoadTexture("textures/scarfy.png");
@@ -24,8 +24,8 @@ int main(){
     // is the rectangle in the air
     bool is_in_air{false};
 
-    // jump velocity
-    const int jump_vel{-22};
+    // jump velocity (pixels/second)
+    const int jump_vel{-600};
 
     int velocity{0};
     
@@ -33,6 +33,10 @@ int main(){
 
     // main game loop
     while(!WindowShouldClose()){
+        
+        // delta time (time since last frame)
+        const float dT{GetFrameTime()};
+
         BeginDrawing();
         ClearBackground(WHITE);
 
@@ -43,7 +47,7 @@ int main(){
             is_in_air = false;
         } else {
             // rectangle is in the air
-            velocity += gravity;
+            velocity += gravity * dT;
             is_in_air = true;
         }
         
@@ -53,13 +57,13 @@ int main(){
         }
         
         // update position
-        player_pos.y += velocity;
+        player_pos.y += velocity * dT;
 
         DrawTextureRec(player, player_rec, player_pos, WHITE);
 
         EndDrawing();
     }
-
+    UnloadTexture(player);
     CloseWindow();
 
     return 0;
