@@ -20,22 +20,28 @@ int main(){
     player_pos.x = (window_width / 2) - (player_rec.width / 2);
     player_pos.y = window_height - player_rec.height;
 
-    
+    // animation frame
+    int frame{0};
+    // amount of time before updating animation frame
+    const float updateTime{1.0 / 12.0};
+    float runningTime{};
+
     // is the rectangle in the air
     bool is_in_air{false};
 
     // jump velocity (pixels/second)
     const int jump_vel{-600};
 
-    int velocity{0};
+    int velocity{};
     
     SetTargetFPS(60);
 
-    // main game loop
+    // -------------------main game loop-------------------------------
     while(!WindowShouldClose()){
         
         // delta time (time since last frame)
         const float dT{GetFrameTime()};
+        runningTime += dT;
 
         BeginDrawing();
         ClearBackground(WHITE);
@@ -59,6 +65,16 @@ int main(){
         // update position
         player_pos.y += velocity * dT;
 
+        // update animation frame
+        if (runningTime >= updateTime){
+            runningTime = 0.0;
+            player_rec.x = frame * player_rec.width;
+            frame++;
+            if (frame > 5){
+                frame = 0;
+            }
+        }
+        
         DrawTextureRec(player, player_rec, player_pos, WHITE);
 
         EndDrawing();
