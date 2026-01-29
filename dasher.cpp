@@ -1,5 +1,13 @@
 #include "raylib.h"
 
+struct AnimData{
+    Rectangle rec;
+    Vector2 pos;
+    int frame;
+    float update_time;
+    float running_time;
+};
+
 int main(){
     const int window_width{512};
     const int window_height{380};
@@ -9,28 +17,41 @@ int main(){
     // acceleration due to gravity in (prixels/second)/second
     const int gravity{1000};
 
+    // nebula obsticle variables
+    Texture2D nebula = LoadTexture("textures/12_nebula_spritesheet.png");
+
+    AnimData neb_data{
+        {0.0, 0.0, float((nebula.width / 8.0)), float((nebula.height / 8.0))}, // Rectangle rec
+        {window_width, (window_height - neb_data.rec.height)}, // Vector 2 pos
+        0, (1.0 / 12.0), 0 // frame, update_time, running_time
+    };
+
+    AnimData neb2_data{
+        {0.0, 0.0, float((nebula.width / 8.0)), float((nebula.height / 8.0))}, // Rectangle rec
+        {window_width + 300, (window_height - neb_data.rec.height)}, // Vector 2 pos
+        0, (1.0 / 16.0), 0 // frame, update_time, running_time
+    };
+    
     // player sprite variables
     Texture2D player = LoadTexture("textures/scarfy.png");
-    Rectangle player_rec;
-    player_rec.width = player.width / 6;
-    player_rec.height = player.height;
-    player_rec.x = 0;
-    player_rec.y = 0;
-    Vector2 player_pos;
-    player_pos.x = (window_width / 2) - (player_rec.width / 2);
-    player_pos.y = window_height - player_rec.height;
-
-    // animation frame
-    int frame{0};
-    // amount of time before updating animation frame
-    const float updateTime{1.0 / 12.0};
-    float runningTime{};
+    AnimData player_data;
+    player_data.rec.width = player.width / 6;
+    player_data.rec.height = player.height;
+    player_data.rec.x = 0;
+    player_data.rec.y = 0;
+    player_data.pos.x = (window_width / 2) - (player_data.rec.width / 2);
+    player_data.pos.y = window_height - player_data.rec.height;
+    player_data.frame = 0;
+    player_data.update_time = 1.0 / 12.0;
+    player_data.running_time = 0.0;
 
     // is the rectangle in the air
     bool is_in_air{false};
 
     // jump velocity (pixels/second)
     const int jump_vel{-600};
+    // nebula x velocit (pixels/second)
+    int neb_vel{-200};
 
     int velocity{};
     
@@ -41,13 +62,15 @@ int main(){
         
         // delta time (time since last frame)
         const float dT{GetFrameTime()};
-        runningTime += dT;
+        player_data.running_time += dT;
+        neb_data.running_time += dT;
+        neb2_data.running_time += dT;
 
         BeginDrawing();
         ClearBackground(WHITE);
 
         // perform ground check
-        if (player_pos.y >= window_height - player_rec.height){
+        if (player_data.pos.y >= window_height - player_data.rec.height){
             // rectangle is on the ground
             velocity = 0;
             is_in_air = false;
@@ -62,24 +85,54 @@ int main(){
             velocity += jump_vel;
         }
         
-        // update position
-        player_pos.y += velocity * dT;
+        // update nebula position
+        neb_data.pos.x += neb_vel * dT;
+        neb2_data.pos.x += neb_vel * dT;
+        
+        // update player position
+        player_data.pos.y += velocity * dT;
 
-        // update animation frame
-        if (runningTime >= updateTime){
-            runningTime = 0.0;
-            player_rec.x = frame * player_rec.width;
-            frame++;
-            if (frame > 5){
-                frame = 0;
+        // update player animation frame
+        if (player_data.running_time >= player_data.update_time && !is_in_air){
+            player_data.running_time = 0.0;
+            player_data.rec.x = player_data.frame * player_data.rec.width;
+            player_data.frame++;
+            if (player_data.frame > 5){
+                player_data.frame = 0;
+            }
+        }
+
+        // update nebula animation frame
+        if (neb_data.running_time >= neb_data.update_time){
+            neb_data.running_time = 0.0;
+            neb_data.rec.x = neb_data.frame * neb_data.rec.width;
+            neb_data.frame++;
+            if (neb_data.frame > 7){
+                neb_data.frame = 0;
+            }
+        }
+
+        // update nebula2 animation frame
+        if (neb2_data.running_time >= neb2_data.update_time){
+            neb2_data.running_time = 0.0;
+            neb2_data.rec.x = neb2_data.frame * neb2_data.rec.width;
+            neb2_data.frame++;
+            if (neb2_data.frame > 7){
+                neb2_data.frame = 0;
             }
         }
         
-        DrawTextureRec(player, player_rec, player_pos, WHITE);
+        // draw nebula
+        DrawTextureRec(nebula, neb_data.rec, neb_data.pos, WHITE);
+        DrawTextureRec(nebula, neb2_data.rec, neb2_data.pos, RED);
+        
+        // draw player
+        DrawTextureRec(player, player_data.rec, player_data.pos, WHITE);
 
         EndDrawing();
     }
     UnloadTexture(player);
+    UnloadTexture(nebula);
     CloseWindow();
 
     return 0;
