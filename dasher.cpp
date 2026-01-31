@@ -20,18 +20,20 @@ int main(){
     // nebula obsticle variables
     Texture2D nebula = LoadTexture("textures/12_nebula_spritesheet.png");
 
-    AnimData neb_data{
-        {0.0, 0.0, float((nebula.width / 8.0)), float((nebula.height / 8.0))}, // Rectangle rec
-        {window_width, (window_height - neb_data.rec.height)}, // Vector 2 pos
-        0, (1.0 / 12.0), 0 // frame, update_time, running_time
-    };
+    const int size_of_nebulae = 10;
+    AnimData nebulae[10]{};
+    for (int i{0}; i < size_of_nebulae; i++){
+        nebulae[i].rec.x = 0.0;
+        nebulae[i].rec.y = 0.0;
+        nebulae[i].rec.width = float((nebula.width / 8.0));
+        nebulae[i].rec.height = float((nebula.height / 8.0));
+        nebulae[i].pos.x = window_width + (i * 300);
+        nebulae[i].pos.y = (window_height - nebulae[i].rec.height);
+        nebulae[i].frame = 0;
+        nebulae[i].running_time = 0.0;
+        nebulae[i].update_time = (1.0 / 16.0);
+    }
 
-    AnimData neb2_data{
-        {0.0, 0.0, float((nebula.width / 8.0)), float((nebula.height / 8.0))}, // Rectangle rec
-        {window_width + 300, (window_height - neb_data.rec.height)}, // Vector 2 pos
-        0, (1.0 / 16.0), 0 // frame, update_time, running_time
-    };
-    
     // player sprite variables
     Texture2D player = LoadTexture("textures/scarfy.png");
     AnimData player_data;
@@ -62,9 +64,6 @@ int main(){
         
         // delta time (time since last frame)
         const float dT{GetFrameTime()};
-        player_data.running_time += dT;
-        neb_data.running_time += dT;
-        neb2_data.running_time += dT;
 
         BeginDrawing();
         ClearBackground(WHITE);
@@ -86,13 +85,15 @@ int main(){
         }
         
         // update nebula position
-        neb_data.pos.x += neb_vel * dT;
-        neb2_data.pos.x += neb_vel * dT;
+        for (int i{0}; i < size_of_nebulae; i++){
+            nebulae[i].pos.x += neb_vel * dT;
+        }
         
         // update player position
         player_data.pos.y += velocity * dT;
 
         // update player animation frame
+        player_data.running_time += dT;
         if (player_data.running_time >= player_data.update_time && !is_in_air){
             player_data.running_time = 0.0;
             player_data.rec.x = player_data.frame * player_data.rec.width;
@@ -103,28 +104,22 @@ int main(){
         }
 
         // update nebula animation frame
-        if (neb_data.running_time >= neb_data.update_time){
-            neb_data.running_time = 0.0;
-            neb_data.rec.x = neb_data.frame * neb_data.rec.width;
-            neb_data.frame++;
-            if (neb_data.frame > 7){
-                neb_data.frame = 0;
-            }
-        }
-
-        // update nebula2 animation frame
-        if (neb2_data.running_time >= neb2_data.update_time){
-            neb2_data.running_time = 0.0;
-            neb2_data.rec.x = neb2_data.frame * neb2_data.rec.width;
-            neb2_data.frame++;
-            if (neb2_data.frame > 7){
-                neb2_data.frame = 0;
+        for (int i{0}; i < size_of_nebulae; i++){
+            nebulae[i].running_time += dT;
+            if (nebulae[i].running_time >= nebulae[i].update_time){
+                nebulae[i].running_time = 0.0;
+                nebulae[i].rec.x = nebulae[i].frame * nebulae[i].rec.width;
+                nebulae[i].frame++;
+                if (nebulae[i].frame > 7){
+                    nebulae[i].frame = 0;
+                }
             }
         }
         
         // draw nebula
-        DrawTextureRec(nebula, neb_data.rec, neb_data.pos, WHITE);
-        DrawTextureRec(nebula, neb2_data.rec, neb2_data.pos, RED);
+        for (int i{0}; i < size_of_nebulae; i++){
+            DrawTextureRec(nebula, nebulae[i].rec, nebulae[i].pos, WHITE);
+        }
         
         // draw player
         DrawTextureRec(player, player_data.rec, player_data.pos, WHITE);
