@@ -8,6 +8,19 @@ struct AnimData{
     float running_time;
 };
 
+AnimData updateAnimData(AnimData data, float delta_time, int max_frame){
+    data.running_time += delta_time;
+    if (data.running_time >= data.update_time){
+        data.running_time = 0.0;
+        data.rec.x = data.frame * data.rec.width;
+        data.frame++;
+        if (data.frame > max_frame){
+            data.frame = 0;
+        }
+    }
+    return data;
+}
+
 int main(){
     const int window_width{512};
     const int window_height{380};
@@ -21,7 +34,7 @@ int main(){
     Texture2D nebula = LoadTexture("textures/12_nebula_spritesheet.png");
 
     const int size_of_nebulae = 10;
-    AnimData nebulae[10]{};
+    AnimData nebulae[size_of_nebulae]{};
     for (int i{0}; i < size_of_nebulae; i++){
         nebulae[i].rec.x = 0.0;
         nebulae[i].rec.y = 0.0;
@@ -93,28 +106,15 @@ int main(){
         player_data.pos.y += velocity * dT;
 
         // update player animation frame
-        player_data.running_time += dT;
-        if (player_data.running_time >= player_data.update_time && !is_in_air){
-            player_data.running_time = 0.0;
-            player_data.rec.x = player_data.frame * player_data.rec.width;
-            player_data.frame++;
-            if (player_data.frame > 5){
-                player_data.frame = 0;
-            }
+        if (!is_in_air){
+            player_data = updateAnimData(player_data, dT, 5);
         }
 
         // update nebula animation frame
         for (int i{0}; i < size_of_nebulae; i++){
-            nebulae[i].running_time += dT;
-            if (nebulae[i].running_time >= nebulae[i].update_time){
-                nebulae[i].running_time = 0.0;
-                nebulae[i].rec.x = nebulae[i].frame * nebulae[i].rec.width;
-                nebulae[i].frame++;
-                if (nebulae[i].frame > 7){
-                    nebulae[i].frame = 0;
-                }
-            }
+            nebulae[i] = updateAnimData(nebulae[i], dT, 7);
         }
+        
         
         // draw nebula
         for (int i{0}; i < size_of_nebulae; i++){
