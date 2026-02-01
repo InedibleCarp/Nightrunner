@@ -69,6 +69,9 @@ int main(){
     int neb_vel{-200};
 
     int velocity{};
+
+    Texture2D background = LoadTexture("textures/far-buildings.png");
+    float bgX{};
     
     SetTargetFPS(60);
 
@@ -80,6 +83,17 @@ int main(){
 
         BeginDrawing();
         ClearBackground(WHITE);
+
+        bgX -= 20 * dT;
+        if (bgX <= -background.width * 2){
+            bgX = 0.0;
+        }
+
+        // draw background
+        Vector2 bg1Pos{bgX, 0.0};
+        Vector2 bg2Pos{bgX + background.width * 2, 0.0};
+        DrawTextureEx(background, bg1Pos, 0.0, 2.0, WHITE);
+        DrawTextureEx(background, bg2Pos, 0.0, 2.0, WHITE);
 
         // perform ground check
         if (player_data.pos.y >= window_height - player_data.rec.height){
@@ -128,6 +142,7 @@ int main(){
     }
     UnloadTexture(player);
     UnloadTexture(nebula);
+    UnloadTexture(background);
     CloseWindow();
 
     return 0;
