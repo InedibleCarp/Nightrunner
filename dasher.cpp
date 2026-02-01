@@ -47,6 +47,8 @@ int main(){
         nebulae[i].update_time = (1.0 / 16.0);
     }
 
+    float finish_line{nebulae[size_of_nebulae - 1].pos.x};
+
     // player sprite variables
     Texture2D player = LoadTexture("textures/scarfy.png");
     AnimData player_data;
@@ -77,6 +79,8 @@ int main(){
     Texture2D foreground = LoadTexture("textures/foreground.png");
     float fgX{};
     
+    bool collision{};
+
     SetTargetFPS(60);
 
     // -------------------main game loop-------------------------------
@@ -144,6 +148,9 @@ int main(){
         // update player position
         player_data.pos.y += velocity * dT;
 
+        // update finish line position
+        finish_line += neb_vel * dT;
+
         // update player animation frame
         if (!is_in_air){
             player_data = updateAnimData(player_data, dT, 5);
@@ -154,14 +161,40 @@ int main(){
             nebulae[i] = updateAnimData(nebulae[i], dT, 7);
         }
         
-        
-        // draw nebula
-        for (int i{0}; i < size_of_nebulae; i++){
-            DrawTextureRec(nebula, nebulae[i].rec, nebulae[i].pos, WHITE);
+        for (AnimData nebula : nebulae){
+            float pad{50};
+            Rectangle neb_rec{
+                nebula.pos.x + pad,
+                nebula.pos.y + pad,
+                nebula.rec.width - 2 * pad,
+                nebula.rec.height - 2 * pad
+            };
+            Rectangle player_rec{
+                player_data.pos.x,
+                player_data.pos.y,
+                player_data.rec.width,
+                player_data.rec.height
+            };
+            if (CheckCollisionRecs(neb_rec, player_rec)){
+                collision = true;
+            }
         }
         
-        // draw player
-        DrawTextureRec(player, player_data.rec, player_data.pos, WHITE);
+        if (collision){
+            // lose the game
+            DrawText("Game Over!", window_width / 4, window_height / 2, 40, RED);
+        } else if (player_data.pos.x >= finish_line){
+            // won the game
+            DrawText("You Win!", window_width / 3, window_height / 2, 40, GREEN);
+        } else {
+            // draw nebula
+            for (int i{0}; i < size_of_nebulae; i++){
+                DrawTextureRec(nebula, nebulae[i].rec, nebulae[i].pos, WHITE);
+            }
+            
+            // draw player
+            DrawTextureRec(player, player_data.rec, player_data.pos, WHITE);
+        }
 
         EndDrawing();
     }
