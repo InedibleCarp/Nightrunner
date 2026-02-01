@@ -72,6 +72,10 @@ int main(){
 
     Texture2D background = LoadTexture("textures/far-buildings.png");
     float bgX{};
+    Texture2D midground = LoadTexture("textures/back-buildings.png");
+    float mgX{};
+    Texture2D foreground = LoadTexture("textures/foreground.png");
+    float fgX{};
     
     SetTargetFPS(60);
 
@@ -84,9 +88,20 @@ int main(){
         BeginDrawing();
         ClearBackground(WHITE);
 
+        // scroll background
         bgX -= 20 * dT;
         if (bgX <= -background.width * 2){
             bgX = 0.0;
+        }
+
+        mgX -= 40 * dT;
+        if (mgX <= -midground.width * 2){
+            mgX = 0.0;
+        }
+
+        fgX -= 80 * dT;
+        if (fgX <= -foreground.width * 2){
+            fgX = 0.0;
         }
 
         // draw background
@@ -94,6 +109,16 @@ int main(){
         Vector2 bg2Pos{bgX + background.width * 2, 0.0};
         DrawTextureEx(background, bg1Pos, 0.0, 2.0, WHITE);
         DrawTextureEx(background, bg2Pos, 0.0, 2.0, WHITE);
+
+        Vector2 mg1Pos{mgX, 0.0};
+        Vector2 mg2Pos{mgX + midground.width * 2, 0.0};
+        DrawTextureEx(midground, mg1Pos, 0.0, 2.0, WHITE);
+        DrawTextureEx(midground, mg2Pos, 0.0, 2.0, WHITE);
+
+        Vector2 fg1Pos{fgX, 0.0};
+        Vector2 fg2Pos{fgX + foreground.width * 2, 0.0};
+        DrawTextureEx(foreground, fg1Pos, 0.0, 2.0, WHITE);
+        DrawTextureEx(foreground, fg2Pos, 0.0, 2.0, WHITE);
 
         // perform ground check
         if (player_data.pos.y >= window_height - player_data.rec.height){
@@ -143,6 +168,8 @@ int main(){
     UnloadTexture(player);
     UnloadTexture(nebula);
     UnloadTexture(background);
+    UnloadTexture(midground);
+    UnloadTexture(foreground);
     CloseWindow();
 
     return 0;
