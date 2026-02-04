@@ -1,5 +1,13 @@
 #include "raylib.h"
 
+// Game states
+enum GameState {
+    MENU,
+    PLAYING,
+    GAME_OVER_WIN,
+    GAME_OVER_LOSE
+};
+
 struct AnimData{
     Rectangle rec;
     Vector2 pos;
@@ -79,8 +87,8 @@ int main(){
     Texture2D foreground = LoadTexture("textures/foreground.png");
     float fgX{};
     
-    bool collision{};
-    bool game_over{false};
+    // Game state - start at menu
+    GameState game_state{MENU};
 
     SetTargetFPS(60);
 
@@ -93,20 +101,22 @@ int main(){
         BeginDrawing();
         ClearBackground(WHITE);
 
-        // scroll background
-        bgX -= 20 * dT;
-        if (bgX <= -background.width * 2){
-            bgX = 0.0;
-        }
+        // scroll background (only during menu and playing)
+        if (game_state == MENU || game_state == PLAYING){
+            bgX -= 20 * dT;
+            if (bgX <= -background.width * 2){
+                bgX = 0.0;
+            }
 
-        mgX -= 40 * dT;
-        if (mgX <= -midground.width * 2){
-            mgX = 0.0;
-        }
+            mgX -= 40 * dT;
+            if (mgX <= -midground.width * 2){
+                mgX = 0.0;
+            }
 
-        fgX -= 80 * dT;
-        if (fgX <= -foreground.width * 2){
-            fgX = 0.0;
+            fgX -= 80 * dT;
+            if (fgX <= -foreground.width * 2){
+                fgX = 0.0;
+            }
         }
 
         // draw background
@@ -125,112 +135,172 @@ int main(){
         DrawTextureEx(foreground, fg1Pos, 0.0, 2.0, WHITE);
         DrawTextureEx(foreground, fg2Pos, 0.0, 2.0, WHITE);
 
-        // only update game logic if game is not over
-        if (!game_over){
-            // perform ground check
-            if (player_data.pos.y >= window_height - player_data.rec.height){
-                // rectangle is on the ground
-                velocity = 0;
-                is_in_air = false;
-            } else {
-                // rectangle is in the air
-                velocity += gravity * dT;
-                is_in_air = true;
-            }
+        // Handle game states
+        switch (game_state) {
+            case MENU:
+            {
+                // Draw title and prompt
+                DrawText("NIGHTRUNNER", window_width / 2 - MeasureText("NIGHTRUNNER", 50) / 2, window_height / 3, 50, WHITE);
+                DrawText("Press SPACE to start", window_width / 2 - MeasureText("Press SPACE to start", 20) / 2, window_height / 2 + 20, 20, LIGHTGRAY);
 
-            // jump check
-            if (IsKeyPressed(KEY_SPACE) && !is_in_air){
-                velocity += jump_vel;
-            }
-
-            // update nebula position
-            for (int i{0}; i < size_of_nebulae; i++){
-                nebulae[i].pos.x += neb_vel * dT;
-            }
-
-            // update player position
-            player_data.pos.y += velocity * dT;
-
-            // update finish line position
-            finish_line += neb_vel * dT;
-
-            // update player animation frame
-            if (!is_in_air){
+                // Draw player on menu screen (idle animation)
                 player_data = updateAnimData(player_data, dT, 5);
-            }
+                DrawTextureRec(player, player_data.rec, player_data.pos, WHITE);
 
-            // update nebula animation frame
-            for (int i{0}; i < size_of_nebulae; i++){
-                nebulae[i] = updateAnimData(nebulae[i], dT, 7);
-            }
-
-            for (AnimData nebula : nebulae){
-                float pad{50};
-                Rectangle neb_rec{
-                    nebula.pos.x + pad,
-                    nebula.pos.y + pad,
-                    nebula.rec.width - 2 * pad,
-                    nebula.rec.height - 2 * pad
-                };
-                Rectangle player_rec{
-                    player_data.pos.x,
-                    player_data.pos.y,
-                    player_data.rec.width,
-                    player_data.rec.height
-                };
-                if (CheckCollisionRecs(neb_rec, player_rec)){
-                    collision = true;
+                // Start game when SPACE is pressed
+                if (IsKeyPressed(KEY_SPACE)) {
+                    game_state = PLAYING;
                 }
-            }
-        }
-        
-        if (collision){
-            // lose the game
-            game_over = true;
-            DrawText("Game Over!", window_width / 4, window_height / 2, 40, RED);
-            DrawText("Press SPACE to restart", window_width / 5, window_height / 2 + 50, 20, WHITE);
-        } else if (player_data.pos.x >= finish_line){
-            // won the game
-            game_over = true;
-            DrawText("You Win!", window_width / 3, window_height / 2, 40, GREEN);
-            DrawText("Press SPACE to restart", window_width / 5, window_height / 2 + 50, 20, WHITE);
-        } else {
-            // draw nebula
-            for (int i{0}; i < size_of_nebulae; i++){
-                DrawTextureRec(nebula, nebulae[i].rec, nebulae[i].pos, WHITE);
+                break;
             }
 
-            // draw player
-            DrawTextureRec(player, player_data.rec, player_data.pos, WHITE);
-        }
+            case PLAYING:
+            {
+                // perform ground check
+                if (player_data.pos.y >= window_height - player_data.rec.height){
+                    // rectangle is on the ground
+                    velocity = 0;
+                    is_in_air = false;
+                } else {
+                    // rectangle is in the air
+                    velocity += gravity * dT;
+                    is_in_air = true;
+                }
 
-        // restart game when SPACE is pressed after game over
-        if (game_over && IsKeyPressed(KEY_SPACE)){
-            // reset game state
-            game_over = false;
-            collision = false;
+                // jump check
+                if (IsKeyPressed(KEY_SPACE) && !is_in_air){
+                    velocity += jump_vel;
+                }
 
-            // reset player position
-            player_data.pos.y = window_height - player_data.rec.height;
-            player_data.frame = 0;
-            player_data.running_time = 0.0;
-            velocity = 0;
-            is_in_air = false;
+                // update nebula position
+                for (int i{0}; i < size_of_nebulae; i++){
+                    nebulae[i].pos.x += neb_vel * dT;
+                }
 
-            // reset nebulae positions
-            for (int i{0}; i < size_of_nebulae; i++){
-                nebulae[i].pos.x = window_width + (i * 300);
-                nebulae[i].frame = 0;
-                nebulae[i].running_time = 0.0;
+                // update player position
+                player_data.pos.y += velocity * dT;
+
+                // update finish line position
+                finish_line += neb_vel * dT;
+
+                // update player animation frame
+                if (!is_in_air){
+                    player_data = updateAnimData(player_data, dT, 5);
+                }
+
+                // update nebula animation frame
+                for (int i{0}; i < size_of_nebulae; i++){
+                    nebulae[i] = updateAnimData(nebulae[i], dT, 7);
+                }
+
+                // collision detection
+                for (AnimData nebula : nebulae){
+                    float pad{50};
+                    Rectangle neb_rec{
+                        nebula.pos.x + pad,
+                        nebula.pos.y + pad,
+                        nebula.rec.width - 2 * pad,
+                        nebula.rec.height - 2 * pad
+                    };
+                    Rectangle player_rec{
+                        player_data.pos.x,
+                        player_data.pos.y,
+                        player_data.rec.width,
+                        player_data.rec.height
+                    };
+                    if (CheckCollisionRecs(neb_rec, player_rec)){
+                        game_state = GAME_OVER_LOSE;
+                    }
+                }
+
+                // check win condition
+                if (player_data.pos.x >= finish_line){
+                    game_state = GAME_OVER_WIN;
+                }
+
+                // draw nebulae
+                for (int i{0}; i < size_of_nebulae; i++){
+                    DrawTextureRec(nebula, nebulae[i].rec, nebulae[i].pos, WHITE);
+                }
+
+                // draw player
+                DrawTextureRec(player, player_data.rec, player_data.pos, WHITE);
+                break;
             }
 
-            // reset finish line
-            finish_line = nebulae[size_of_nebulae - 1].pos.x;
+            case GAME_OVER_WIN:
+            {
+                // Draw win screen
+                DrawText("You Win!", window_width / 2 - MeasureText("You Win!", 40) / 2, window_height / 2 - 20, 40, GREEN);
+                DrawText("Press SPACE to play again", window_width / 2 - MeasureText("Press SPACE to play again", 20) / 2, window_height / 2 + 40, 20, WHITE);
+                DrawText("Press M for menu", window_width / 2 - MeasureText("Press M for menu", 16) / 2, window_height / 2 + 70, 16, LIGHTGRAY);
 
-            // reset background positions
-            bgX = 0.0;
-            mgX = 0.0;
-            fgX = 0.0;
+                // Handle restart
+                if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_M)){
+                    // reset player position
+                    player_data.pos.y = window_height - player_data.rec.height;
+                    player_data.frame = 0;
+                    player_data.running_time = 0.0;
+                    velocity = 0;
+                    is_in_air = false;
+
+                    // reset nebulae positions
+                    for (int i{0}; i < size_of_nebulae; i++){
+                        nebulae[i].pos.x = window_width + (i * 300);
+                        nebulae[i].frame = 0;
+                        nebulae[i].running_time = 0.0;
+                    }
+
+                    // reset finish line
+                    finish_line = nebulae[size_of_nebulae - 1].pos.x;
+
+                    // reset background positions
+                    bgX = 0.0;
+                    mgX = 0.0;
+                    fgX = 0.0;
+
+                    // transition to appropriate state
+                    game_state = IsKeyPressed(KEY_M) ? MENU : PLAYING;
+                }
+                break;
+            }
+
+            case GAME_OVER_LOSE:
+            {
+                // Draw game over screen
+                DrawText("Game Over!", window_width / 2 - MeasureText("Game Over!", 40) / 2, window_height / 2 - 20, 40, RED);
+                DrawText("Press SPACE to try again", window_width / 2 - MeasureText("Press SPACE to try again", 20) / 2, window_height / 2 + 40, 20, WHITE);
+                DrawText("Press M for menu", window_width / 2 - MeasureText("Press M for menu", 16) / 2, window_height / 2 + 70, 16, LIGHTGRAY);
+
+                // Handle restart
+                if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_M)){
+                    // reset player position
+                    player_data.pos.y = window_height - player_data.rec.height;
+                    player_data.frame = 0;
+                    player_data.running_time = 0.0;
+                    velocity = 0;
+                    is_in_air = false;
+
+                    // reset nebulae positions
+                    for (int i{0}; i < size_of_nebulae; i++){
+                        nebulae[i].pos.x = window_width + (i * 300);
+                        nebulae[i].frame = 0;
+                        nebulae[i].running_time = 0.0;
+                    }
+
+                    // reset finish line
+                    finish_line = nebulae[size_of_nebulae - 1].pos.x;
+
+                    // reset background positions
+                    bgX = 0.0;
+                    mgX = 0.0;
+                    fgX = 0.0;
+
+                    // transition to appropriate state
+                    game_state = IsKeyPressed(KEY_M) ? MENU : PLAYING;
+                }
+                break;
+            }
         }
 
         EndDrawing();
