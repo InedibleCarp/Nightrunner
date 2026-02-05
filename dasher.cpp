@@ -90,6 +90,11 @@ int main(){
     // Game state - start at menu
     GameState game_state{MENU};
 
+    // Score based on distance traveled
+    int score{0};
+    float distance_accumulator{0.0f};
+    const float distance_per_point{50.0f};  // pixels traveled per score point
+
     SetTargetFPS(60);
 
     // -------------------main game loop-------------------------------
@@ -156,6 +161,13 @@ int main(){
 
             case PLAYING:
             {
+                // update score based on distance traveled
+                distance_accumulator += -neb_vel * dT;
+                while (distance_accumulator >= distance_per_point) {
+                    score++;
+                    distance_accumulator -= distance_per_point;
+                }
+
                 // perform ground check
                 if (player_data.pos.y >= window_height - player_data.rec.height){
                     // rectangle is on the ground
@@ -225,15 +237,19 @@ int main(){
 
                 // draw player
                 DrawTextureRec(player, player_data.rec, player_data.pos, WHITE);
+
+                // draw score HUD
+                DrawText(TextFormat("Score: %d", score), 10, 10, 20, WHITE);
                 break;
             }
 
             case GAME_OVER_WIN:
             {
                 // Draw win screen
-                DrawText("You Win!", window_width / 2 - MeasureText("You Win!", 40) / 2, window_height / 2 - 20, 40, GREEN);
-                DrawText("Press SPACE to play again", window_width / 2 - MeasureText("Press SPACE to play again", 20) / 2, window_height / 2 + 40, 20, WHITE);
-                DrawText("Press M for menu", window_width / 2 - MeasureText("Press M for menu", 16) / 2, window_height / 2 + 70, 16, LIGHTGRAY);
+                DrawText("You Win!", window_width / 2 - MeasureText("You Win!", 40) / 2, window_height / 2 - 40, 40, GREEN);
+                DrawText(TextFormat("Final Score: %d", score), window_width / 2 - MeasureText(TextFormat("Final Score: %d", score), 24) / 2, window_height / 2 + 10, 24, WHITE);
+                DrawText("Press SPACE to play again", window_width / 2 - MeasureText("Press SPACE to play again", 20) / 2, window_height / 2 + 50, 20, LIGHTGRAY);
+                DrawText("Press M for menu", window_width / 2 - MeasureText("Press M for menu", 16) / 2, window_height / 2 + 80, 16, LIGHTGRAY);
 
                 // Handle restart
                 if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_M)){
@@ -258,6 +274,10 @@ int main(){
                     bgX = 0.0;
                     mgX = 0.0;
                     fgX = 0.0;
+
+                    // reset score
+                    score = 0;
+                    distance_accumulator = 0.0f;
 
                     // transition to appropriate state
                     game_state = IsKeyPressed(KEY_M) ? MENU : PLAYING;
@@ -268,9 +288,10 @@ int main(){
             case GAME_OVER_LOSE:
             {
                 // Draw game over screen
-                DrawText("Game Over!", window_width / 2 - MeasureText("Game Over!", 40) / 2, window_height / 2 - 20, 40, RED);
-                DrawText("Press SPACE to try again", window_width / 2 - MeasureText("Press SPACE to try again", 20) / 2, window_height / 2 + 40, 20, WHITE);
-                DrawText("Press M for menu", window_width / 2 - MeasureText("Press M for menu", 16) / 2, window_height / 2 + 70, 16, LIGHTGRAY);
+                DrawText("Game Over!", window_width / 2 - MeasureText("Game Over!", 40) / 2, window_height / 2 - 40, 40, RED);
+                DrawText(TextFormat("Final Score: %d", score), window_width / 2 - MeasureText(TextFormat("Final Score: %d", score), 24) / 2, window_height / 2 + 10, 24, WHITE);
+                DrawText("Press SPACE to try again", window_width / 2 - MeasureText("Press SPACE to try again", 20) / 2, window_height / 2 + 50, 20, LIGHTGRAY);
+                DrawText("Press M for menu", window_width / 2 - MeasureText("Press M for menu", 16) / 2, window_height / 2 + 80, 16, LIGHTGRAY);
 
                 // Handle restart
                 if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_M)){
@@ -295,6 +316,10 @@ int main(){
                     bgX = 0.0;
                     mgX = 0.0;
                     fgX = 0.0;
+
+                    // reset score
+                    score = 0;
+                    distance_accumulator = 0.0f;
 
                     // transition to appropriate state
                     game_state = IsKeyPressed(KEY_M) ? MENU : PLAYING;
