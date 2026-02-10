@@ -72,6 +72,7 @@ int main(){
 
     // is the rectangle in the air
     bool is_in_air{false};
+    bool can_double_jump{true};  // reset when landing, used when jumping in air
 
     // jump velocity (pixels/second)
     const int jump_vel{-600};
@@ -173,6 +174,7 @@ int main(){
                     // rectangle is on the ground
                     velocity = 0;
                     is_in_air = false;
+                    can_double_jump = true;  // reset double jump when landing
                 } else {
                     // rectangle is in the air
                     velocity += gravity * dT;
@@ -180,8 +182,15 @@ int main(){
                 }
 
                 // jump check
-                if (IsKeyPressed(KEY_SPACE) && !is_in_air){
-                    velocity += jump_vel;
+                if (IsKeyPressed(KEY_SPACE)){
+                    if (!is_in_air){
+                        // first jump from ground
+                        velocity += jump_vel;
+                    } else if (can_double_jump){
+                        // double jump in air
+                        velocity = jump_vel;  // reset velocity for consistent jump height
+                        can_double_jump = false;
+                    }
                 }
 
                 // update nebula position
@@ -259,6 +268,7 @@ int main(){
                     player_data.running_time = 0.0;
                     velocity = 0;
                     is_in_air = false;
+                    can_double_jump = true;
 
                     // reset nebulae positions
                     for (int i{0}; i < size_of_nebulae; i++){
@@ -301,6 +311,7 @@ int main(){
                     player_data.running_time = 0.0;
                     velocity = 0;
                     is_in_air = false;
+                    can_double_jump = true;
 
                     // reset nebulae positions
                     for (int i{0}; i < size_of_nebulae; i++){
