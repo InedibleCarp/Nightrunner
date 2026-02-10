@@ -30,8 +30,8 @@ AnimData updateAnimData(AnimData data, float delta_time, int max_frame){
 }
 
 int main(){
-    const int window_width{512};
-    const int window_height{380};
+    const int window_width{768};
+    const int window_height{480};
 
     InitWindow(window_width, window_height, "Nightrunner");
 
@@ -110,36 +110,36 @@ int main(){
         // scroll background (only during menu and playing)
         if (game_state == MENU || game_state == PLAYING){
             bgX -= 20 * dT;
-            if (bgX <= -background.width * 2){
+            if (bgX <= -background.width * 3){
                 bgX = 0.0;
             }
 
             mgX -= 40 * dT;
-            if (mgX <= -midground.width * 2){
+            if (mgX <= -midground.width * 3){
                 mgX = 0.0;
             }
 
             fgX -= 80 * dT;
-            if (fgX <= -foreground.width * 2){
+            if (fgX <= -foreground.width * 3){
                 fgX = 0.0;
             }
         }
 
         // draw background
         Vector2 bg1Pos{bgX, 0.0};
-        Vector2 bg2Pos{bgX + background.width * 2, 0.0};
-        DrawTextureEx(background, bg1Pos, 0.0, 2.0, WHITE);
-        DrawTextureEx(background, bg2Pos, 0.0, 2.0, WHITE);
+        Vector2 bg2Pos{bgX + background.width * 3, 0.0};
+        DrawTextureEx(background, bg1Pos, 0.0, 3.0, WHITE);
+        DrawTextureEx(background, bg2Pos, 0.0, 3.0, WHITE);
 
         Vector2 mg1Pos{mgX, 0.0};
-        Vector2 mg2Pos{mgX + midground.width * 2, 0.0};
-        DrawTextureEx(midground, mg1Pos, 0.0, 2.0, WHITE);
-        DrawTextureEx(midground, mg2Pos, 0.0, 2.0, WHITE);
+        Vector2 mg2Pos{mgX + midground.width * 3, 0.0};
+        DrawTextureEx(midground, mg1Pos, 0.0, 3.0, WHITE);
+        DrawTextureEx(midground, mg2Pos, 0.0, 3.0, WHITE);
 
         Vector2 fg1Pos{fgX, 0.0};
-        Vector2 fg2Pos{fgX + foreground.width * 2, 0.0};
-        DrawTextureEx(foreground, fg1Pos, 0.0, 2.0, WHITE);
-        DrawTextureEx(foreground, fg2Pos, 0.0, 2.0, WHITE);
+        Vector2 fg2Pos{fgX + foreground.width * 3, 0.0};
+        DrawTextureEx(foreground, fg1Pos, 0.0, 3.0, WHITE);
+        DrawTextureEx(foreground, fg2Pos, 0.0, 3.0, WHITE);
 
         // Handle game states
         switch (game_state) {
@@ -201,6 +201,12 @@ int main(){
                 // update player position
                 player_data.pos.y += velocity * dT;
 
+                // clamp player to screen bounds
+                if (player_data.pos.y < 0){
+                    player_data.pos.y = 0;
+                    velocity = 0;
+                }
+
                 // update finish line position
                 finish_line += neb_vel * dT;
 
@@ -254,6 +260,9 @@ int main(){
 
             case GAME_OVER_WIN:
             {
+                // Draw panel behind text
+                DrawRectangle(window_width / 2 - 200, window_height / 2 - 60, 400, 170, Color{0, 0, 0, 180});
+
                 // Draw win screen
                 DrawText("You Win!", window_width / 2 - MeasureText("You Win!", 40) / 2, window_height / 2 - 40, 40, GREEN);
                 DrawText(TextFormat("Final Score: %d", score), window_width / 2 - MeasureText(TextFormat("Final Score: %d", score), 24) / 2, window_height / 2 + 10, 24, WHITE);
@@ -297,6 +306,9 @@ int main(){
 
             case GAME_OVER_LOSE:
             {
+                // Draw panel behind text
+                DrawRectangle(window_width / 2 - 200, window_height / 2 - 60, 400, 170, Color{0, 0, 0, 180});
+
                 // Draw game over screen
                 DrawText("Game Over!", window_width / 2 - MeasureText("Game Over!", 40) / 2, window_height / 2 - 40, 40, RED);
                 DrawText(TextFormat("Final Score: %d", score), window_width / 2 - MeasureText(TextFormat("Final Score: %d", score), 24) / 2, window_height / 2 + 10, 24, WHITE);
