@@ -1,4 +1,5 @@
 #include "raylib.h"
+#include <cmath>
 
 // Game states
 enum GameState {
@@ -38,6 +39,15 @@ int main(){
     // acceleration due to gravity in (prixels/second)/second
     const int gravity{1000};
 
+    // difficulty scaling constants
+    const float base_neb_vel{-200.0f};   // starting obstacle speed (px/s)
+    const float vel_scale{50.0f};        // log curve scaling factor for speed ramp
+    const float max_neb_vel{-600.0f};    // speed cap (fastest obstacles can move)
+    const float base_max_gap{400.0f};    // starting max gap between obstacles (px)
+    const float min_gap{200.0f};         // minimum gap (must always be jumpable)
+    const float gap_shrink_scale{20.0f}; // log curve scaling factor for gap tightening
+    const float min_max_gap{250.0f};     // floor for max gap (never tighter than this)
+
     // nebula obsticle variables
     Texture2D nebula = LoadTexture("textures/12_nebula_spritesheet.png");
 
@@ -54,8 +64,6 @@ int main(){
         nebulae[i].running_time = 0.0;
         nebulae[i].update_time = (1.0 / 16.0);
     }
-
-    float finish_line{nebulae[size_of_nebulae - 1].pos.x};
 
     // player sprite variables
     Texture2D player = LoadTexture("textures/scarfy.png");
@@ -76,8 +84,8 @@ int main(){
 
     // jump velocity (pixels/second)
     const int jump_vel{-600};
-    // nebula x velocit (pixels/second)
-    int neb_vel{-200};
+    // nebula x velocity (pixels/second) - derived from score each frame
+    float neb_vel{base_neb_vel};
 
     int velocity{};
 
@@ -162,6 +170,10 @@ int main(){
 
             case PLAYING:
             {
+                // scale difficulty based on score (logarithmic curve)
+                neb_vel = base_neb_vel - vel_scale * logf(1.0f + score);
+                if (neb_vel < max_neb_vel) neb_vel = max_neb_vel;
+
                 // update score based on distance traveled
                 distance_accumulator += -neb_vel * dT;
                 while (distance_accumulator >= distance_per_point) {
@@ -198,6 +210,24 @@ int main(){
                     nebulae[i].pos.x += neb_vel * dT;
                 }
 
+                // recycle nebulae that scroll off-screen left
+                for (int i{0}; i < size_of_nebulae; i++){
+                    if (nebulae[i].pos.x < -nebulae[i].rec.width){
+                        // find the rightmost nebula
+                        float rightmost_x = 0.0f;
+                        for (int j{0}; j < size_of_nebulae; j++){
+                            if (nebulae[j].pos.x > rightmost_x){
+                                rightmost_x = nebulae[j].pos.x;
+                            }
+                        }
+                        // compute randomized gap that tightens with score
+                        float current_max_gap = base_max_gap - gap_shrink_scale * logf(1.0f + score);
+                        if (current_max_gap < min_max_gap) current_max_gap = min_max_gap;
+                        float gap = (float)GetRandomValue((int)min_gap, (int)current_max_gap);
+                        nebulae[i].pos.x = rightmost_x + gap;
+                    }
+                }
+
                 // update player position
                 player_data.pos.y += velocity * dT;
 
@@ -206,9 +236,6 @@ int main(){
                     player_data.pos.y = 0;
                     velocity = 0;
                 }
-
-                // update finish line position
-                finish_line += neb_vel * dT;
 
                 // update player animation frame
                 if (!is_in_air){
@@ -240,11 +267,6 @@ int main(){
                     }
                 }
 
-                // check win condition
-                if (player_data.pos.x >= finish_line){
-                    game_state = GAME_OVER_WIN;
-                }
-
                 // draw nebulae
                 for (int i{0}; i < size_of_nebulae; i++){
                     DrawTextureRec(nebula, nebulae[i].rec, nebulae[i].pos, WHITE);
@@ -260,47 +282,7 @@ int main(){
 
             case GAME_OVER_WIN:
             {
-                // Draw panel behind text
-                DrawRectangle(window_width / 2 - 200, window_height / 2 - 60, 400, 170, Color{0, 0, 0, 180});
-
-                // Draw win screen
-                DrawText("You Win!", window_width / 2 - MeasureText("You Win!", 40) / 2, window_height / 2 - 40, 40, GREEN);
-                DrawText(TextFormat("Final Score: %d", score), window_width / 2 - MeasureText(TextFormat("Final Score: %d", score), 24) / 2, window_height / 2 + 10, 24, WHITE);
-                DrawText("Press SPACE to play again", window_width / 2 - MeasureText("Press SPACE to play again", 20) / 2, window_height / 2 + 50, 20, LIGHTGRAY);
-                DrawText("Press M for menu", window_width / 2 - MeasureText("Press M for menu", 16) / 2, window_height / 2 + 80, 16, LIGHTGRAY);
-
-                // Handle restart
-                if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_M)){
-                    // reset player position
-                    player_data.pos.y = window_height - player_data.rec.height;
-                    player_data.frame = 0;
-                    player_data.running_time = 0.0;
-                    velocity = 0;
-                    is_in_air = false;
-                    can_double_jump = true;
-
-                    // reset nebulae positions
-                    for (int i{0}; i < size_of_nebulae; i++){
-                        nebulae[i].pos.x = window_width + (i * 300);
-                        nebulae[i].frame = 0;
-                        nebulae[i].running_time = 0.0;
-                    }
-
-                    // reset finish line
-                    finish_line = nebulae[size_of_nebulae - 1].pos.x;
-
-                    // reset background positions
-                    bgX = 0.0;
-                    mgX = 0.0;
-                    fgX = 0.0;
-
-                    // reset score
-                    score = 0;
-                    distance_accumulator = 0.0f;
-
-                    // transition to appropriate state
-                    game_state = IsKeyPressed(KEY_M) ? MENU : PLAYING;
-                }
+                // Reserved for future high score celebration
                 break;
             }
 
@@ -332,8 +314,8 @@ int main(){
                         nebulae[i].running_time = 0.0;
                     }
 
-                    // reset finish line
-                    finish_line = nebulae[size_of_nebulae - 1].pos.x;
+                    // reset difficulty
+                    neb_vel = base_neb_vel;
 
                     // reset background positions
                     bgX = 0.0;
