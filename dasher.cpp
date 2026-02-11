@@ -43,8 +43,8 @@ int main(){
     const float base_neb_vel{-200.0f};   // starting obstacle speed (px/s)
     const float vel_scale{50.0f};        // log curve scaling factor for speed ramp
     const float max_neb_vel{-600.0f};    // speed cap (fastest obstacles can move)
-    const float base_max_gap{400.0f};    // starting max gap between obstacles (px)
-    const float min_gap{200.0f};         // minimum gap (must always be jumpable)
+    const float base_max_gap{600.0f};    // starting max gap between obstacles (px)
+    const float min_gap{300.0f};         // minimum gap (must always be jumpable)
     const float gap_shrink_scale{20.0f}; // log curve scaling factor for gap tightening
     const float min_max_gap{250.0f};     // floor for max gap (never tighter than this)
 
@@ -58,7 +58,7 @@ int main(){
         nebulae[i].rec.y = 0.0;
         nebulae[i].rec.width = float((nebula.width / 8.0));
         nebulae[i].rec.height = float((nebula.height / 8.0));
-        nebulae[i].pos.x = window_width + (i * 300);
+        nebulae[i].pos.x = window_width + (i * 500);
         nebulae[i].pos.y = (window_height - nebulae[i].rec.height);
         nebulae[i].frame = 0;
         nebulae[i].running_time = 0.0;
@@ -309,7 +309,7 @@ int main(){
 
                     // reset nebulae positions
                     for (int i{0}; i < size_of_nebulae; i++){
-                        nebulae[i].pos.x = window_width + (i * 300);
+                        nebulae[i].pos.x = window_width + (i * 500);
                         nebulae[i].frame = 0;
                         nebulae[i].running_time = 0.0;
                     }
