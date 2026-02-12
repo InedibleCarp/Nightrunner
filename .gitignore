@@ -3,3 +3,4 @@
 *.dsym
 game
 dasher.o
+scores.dat

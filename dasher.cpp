@@ -1,13 +1,70 @@
 #include "raylib.h"
 #include <cmath>
+#include <cstdio>
+#include <cstring>
 
 // Game states
 enum GameState {
     MENU,
     PLAYING,
     GAME_OVER_WIN,
-    GAME_OVER_LOSE
+    GAME_OVER_LOSE,
+    LEADERBOARD
 };
+
+// Leaderboard
+const int LEADERBOARD_SIZE = 5;
+
+struct ScoreEntry {
+    int score;
+};
+
+struct Leaderboard {
+    char magic[4];  // "NR01"
+    ScoreEntry entries[LEADERBOARD_SIZE];
+};
+
+void init_leaderboard(Leaderboard &lb) {
+    memcpy(lb.magic, "NR01", 4);
+    for (int i = 0; i < LEADERBOARD_SIZE; i++) {
+        lb.entries[i].score = 0;
+    }
+}
+
+bool load_leaderboard(const char *path, Leaderboard &lb) {
+    FILE *f = fopen(path, "rb");
+    if (!f) return false;
+    size_t read = fread(&lb, sizeof(Leaderboard), 1, f);
+    fclose(f);
+    if (read != 1 || memcmp(lb.magic, "NR01", 4) != 0) return false;
+    return true;
+}
+
+void save_leaderboard(const char *path, const Leaderboard &lb) {
+    FILE *f = fopen(path, "wb");
+    if (!f) return;
+    fwrite(&lb, sizeof(Leaderboard), 1, f);
+    fclose(f);
+}
+
+// Returns the rank (0-4) if the score made the board, or -1 if not.
+int insert_score(Leaderboard &lb, int score) {
+    // Find insertion point (sorted descending)
+    int pos = -1;
+    for (int i = 0; i < LEADERBOARD_SIZE; i++) {
+        if (score > lb.entries[i].score) {
+            pos = i;
+            break;
+        }
+    }
+    if (pos < 0) return -1;
+    // Shift lower scores down
+    for (int i = LEADERBOARD_SIZE - 1; i > pos; i--) {
+        lb.entries[i] = lb.entries[i - 1];
+    }
+    lb.entries[pos].score = score;
+    return pos;
+}
 
 struct AnimData{
     Rectangle rec;
@@ -104,6 +161,13 @@ int main(){
     float distance_accumulator{0.0f};
     const float distance_per_point{50.0f};  // pixels traveled per score point
 
+    // Leaderboard
+    const char *scores_path = "scores.dat";
+    Leaderboard leaderboard;
+    init_leaderboard(leaderboard);
+    load_leaderboard(scores_path, leaderboard);
+    int last_rank{-1};  // rank of last inserted score (-1 = didn't place)
+
     SetTargetFPS(60);
 
     // -------------------main game loop-------------------------------
@@ -115,8 +179,8 @@ int main(){
         BeginDrawing();
         ClearBackground(WHITE);
 
-        // scroll background (only during menu and playing)
-        if (game_state == MENU || game_state == PLAYING){
+        // scroll background (during menu, playing, and leaderboard)
+        if (game_state == MENU || game_state == PLAYING || game_state == LEADERBOARD){
             bgX -= 20 * dT;
             if (bgX <= -background.width * 3){
                 bgX = 0.0;
@@ -156,6 +220,7 @@ int main(){
                 // Draw title and prompt
                 DrawText("NIGHTRUNNER", window_width / 2 - MeasureText("NIGHTRUNNER", 50) / 2, window_height / 3, 50, WHITE);
                 DrawText("Press SPACE to start", window_width / 2 - MeasureText("Press SPACE to start", 20) / 2, window_height / 2 + 20, 20, LIGHTGRAY);
+                DrawText("Press L for Leaderboard", window_width / 2 - MeasureText("Press L for Leaderboard", 16) / 2, window_height / 2 + 50, 16, LIGHTGRAY);
 
                 // Draw player on menu screen (idle animation)
                 player_data = updateAnimData(player_data, dT, 5);
@@ -164,6 +229,10 @@ int main(){
                 // Start game when SPACE is pressed
                 if (IsKeyPressed(KEY_SPACE)) {
                     game_state = PLAYING;
+                }
+                if (IsKeyPressed(KEY_L)) {
+                    last_rank = -1;
+                    game_state = LEADERBOARD;
                 }
                 break;
             }
@@ -288,17 +357,31 @@ int main(){
 
             case GAME_OVER_LOSE:
             {
+                // Save score to leaderboard on first frame of game over
+                static bool score_saved = false;
+                if (!score_saved) {
+                    last_rank = insert_score(leaderboard, score);
+                    if (last_rank >= 0) {
+                        save_leaderboard(scores_path, leaderboard);
+                    }
+                    score_saved = true;
+                }
+
                 // Draw panel behind text
-                DrawRectangle(window_width / 2 - 200, window_height / 2 - 60, 400, 170, Color{0, 0, 0, 180});
+                DrawRectangle(window_width / 2 - 200, window_height / 2 - 70, 400, 200, Color{0, 0, 0, 180});
 
                 // Draw game over screen
-                DrawText("Game Over!", window_width / 2 - MeasureText("Game Over!", 40) / 2, window_height / 2 - 40, 40, RED);
-                DrawText(TextFormat("Final Score: %d", score), window_width / 2 - MeasureText(TextFormat("Final Score: %d", score), 24) / 2, window_height / 2 + 10, 24, WHITE);
-                DrawText("Press SPACE to try again", window_width / 2 - MeasureText("Press SPACE to try again", 20) / 2, window_height / 2 + 50, 20, LIGHTGRAY);
-                DrawText("Press M for menu", window_width / 2 - MeasureText("Press M for menu", 16) / 2, window_height / 2 + 80, 16, LIGHTGRAY);
+                DrawText("Game Over!", window_width / 2 - MeasureText("Game Over!", 40) / 2, window_height / 2 - 50, 40, RED);
+                DrawText(TextFormat("Final Score: %d", score), window_width / 2 - MeasureText(TextFormat("Final Score: %d", score), 24) / 2, window_height / 2, 24, WHITE);
+                if (last_rank >= 0) {
+                    const char *rank_text = TextFormat("New high score! Rank #%d", last_rank + 1);
+                    DrawText(rank_text, window_width / 2 - MeasureText(rank_text, 20) / 2, window_height / 2 + 30, 20, GOLD);
+                }
+                DrawText("Press SPACE to try again", window_width / 2 - MeasureText("Press SPACE to try again", 20) / 2, window_height / 2 + 60, 20, LIGHTGRAY);
+                DrawText("Press L for Leaderboard  |  Press M for Menu", window_width / 2 - MeasureText("Press L for Leaderboard  |  Press M for Menu", 16) / 2, window_height / 2 + 90, 16, LIGHTGRAY);
 
-                // Handle restart
-                if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_M)){
+                // Handle input
+                if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_M) || IsKeyPressed(KEY_L)){
                     // reset player position
                     player_data.pos.y = window_height - player_data.rec.height;
                     player_data.frame = 0;
@@ -325,9 +408,48 @@ int main(){
                     // reset score
                     score = 0;
                     distance_accumulator = 0.0f;
+                    score_saved = false;
 
                     // transition to appropriate state
-                    game_state = IsKeyPressed(KEY_M) ? MENU : PLAYING;
+                    if (IsKeyPressed(KEY_L)) {
+                        game_state = LEADERBOARD;
+                    } else if (IsKeyPressed(KEY_M)) {
+                        game_state = MENU;
+                    } else {
+                        game_state = PLAYING;
+                    }
+                }
+                break;
+            }
+
+            case LEADERBOARD:
+            {
+                // Draw leaderboard panel
+                int panel_w = 400;
+                int panel_h = 280;
+                int panel_x = window_width / 2 - panel_w / 2;
+                int panel_y = window_height / 2 - panel_h / 2;
+                DrawRectangle(panel_x, panel_y, panel_w, panel_h, Color{0, 0, 0, 180});
+
+                DrawText("LEADERBOARD", window_width / 2 - MeasureText("LEADERBOARD", 36) / 2, panel_y + 15, 36, GOLD);
+
+                // Draw each entry
+                for (int i = 0; i < LEADERBOARD_SIZE; i++) {
+                    int y = panel_y + 65 + i * 35;
+                    Color row_color = (i == last_rank) ? GOLD : WHITE;
+                    const char *entry_text;
+                    if (leaderboard.entries[i].score > 0) {
+                        entry_text = TextFormat("#%d    %d", i + 1, leaderboard.entries[i].score);
+                    } else {
+                        entry_text = TextFormat("#%d    ---", i + 1);
+                    }
+                    DrawText(entry_text, window_width / 2 - MeasureText(entry_text, 24) / 2, y, 24, row_color);
+                }
+
+                DrawText("Press M for Menu", window_width / 2 - MeasureText("Press M for Menu", 16) / 2, panel_y + panel_h - 30, 16, LIGHTGRAY);
+
+                if (IsKeyPressed(KEY_M) || IsKeyPressed(KEY_SPACE)) {
+                    game_state = MENU;
                 }
                 break;
             }
