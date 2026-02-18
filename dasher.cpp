@@ -92,6 +92,7 @@ int main(){
     const int window_height{480};
 
     InitWindow(window_width, window_height, "Nightrunner");
+    InitAudioDevice();
 
     // acceleration due to gravity in (prixels/second)/second
     const int gravity{1000};
@@ -170,11 +171,25 @@ int main(){
 
     SetTargetFPS(60);
 
+    Music menu_music = LoadMusicStream("audio/menu_theme.mp3");
+
     // -------------------main game loop-------------------------------
     while(!WindowShouldClose()){
         
         // delta time (time since last frame)
         const float dT{GetFrameTime()};
+
+        // Menu music: play during MENU state, stop otherwise
+        if (game_state == MENU) {
+            if (!IsMusicStreamPlaying(menu_music)) {
+                PlayMusicStream(menu_music);
+            }
+            UpdateMusicStream(menu_music);
+        } else {
+            if (IsMusicStreamPlaying(menu_music)) {
+                StopMusicStream(menu_music);
+            }
+        }
 
         BeginDrawing();
         ClearBackground(WHITE);
@@ -462,6 +477,8 @@ int main(){
     UnloadTexture(background);
     UnloadTexture(midground);
     UnloadTexture(foreground);
+    UnloadMusicStream(menu_music);
+    CloseAudioDevice();
     CloseWindow();
 
     return 0;
