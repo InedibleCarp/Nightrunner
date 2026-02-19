@@ -172,6 +172,7 @@ int main(){
     SetTargetFPS(60);
 
     Music menu_music = LoadMusicStream("audio/menu_theme.mp3");
+    Music game_music = LoadMusicStream("audio/gameplay_theme.mp3");
 
     // -------------------main game loop-------------------------------
     while(!WindowShouldClose()){
@@ -179,7 +180,7 @@ int main(){
         // delta time (time since last frame)
         const float dT{GetFrameTime()};
 
-        // Menu music: play during MENU state, stop otherwise
+        // Menu music: play during MENU or LEADERBOARD state, stop otherwise
         if (game_state == MENU || game_state == LEADERBOARD) {
             if (!IsMusicStreamPlaying(menu_music)) {
                 PlayMusicStream(menu_music);
@@ -188,6 +189,18 @@ int main(){
         } else {
             if (IsMusicStreamPlaying(menu_music)) {
                 StopMusicStream(menu_music);
+            }
+        }
+
+        // Game music: play during PLAYING state, stop otherwise
+        if (game_state == PLAYING) {
+            if (!IsMusicStreamPlaying(game_music)) {
+                PlayMusicStream(game_music);
+            }
+            UpdateMusicStream(game_music);
+        } else {
+            if (IsMusicStreamPlaying(game_music)) {
+                StopMusicStream(game_music);
             }
         }
 
@@ -478,6 +491,7 @@ int main(){
     UnloadTexture(midground);
     UnloadTexture(foreground);
     UnloadMusicStream(menu_music);
+    UnloadMusicStream(game_music);
     CloseAudioDevice();
     CloseWindow();
 
