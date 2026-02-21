@@ -186,7 +186,7 @@ int main(){
         const float dT{GetFrameTime()};
 
         // Menu music: play during MENU state, stop otherwise
-        if (game_state == MENU) {
+        if (game_state == MENU || game_state == LEADERBOARD) {
             if (!IsMusicStreamPlaying(menu_music)) {
                 PlayMusicStream(menu_music);
             }
