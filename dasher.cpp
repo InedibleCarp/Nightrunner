@@ -162,6 +162,11 @@ int main(){
     float distance_accumulator{0.0f};
     const float distance_per_point{50.0f};  // pixels traveled per score point
 
+    // Lives
+    int lives{3};
+    float invincibility_timer{0.0f};
+    const float invincibility_duration{1.1f};
+
     // Leaderboard
     const char *scores_path = "scores.dat";
     Leaderboard leaderboard;
@@ -180,8 +185,8 @@ int main(){
         // delta time (time since last frame)
         const float dT{GetFrameTime()};
 
-        // Menu music: play during MENU or LEADERBOARD state, stop otherwise
-        if (game_state == MENU || game_state == LEADERBOARD) {
+        // Menu music: play during MENU state, stop otherwise
+        if (game_state == MENU) {
             if (!IsMusicStreamPlaying(menu_music)) {
                 PlayMusicStream(menu_music);
             }
@@ -334,6 +339,11 @@ int main(){
                     velocity = 0;
                 }
 
+                // tick down invincibility
+                if (invincibility_timer > 0.0f) {
+                    invincibility_timer -= dT;
+                }
+
                 // update player animation frame
                 if (!is_in_air){
                     player_data = updateAnimData(player_data, dT, 5);
@@ -359,8 +369,17 @@ int main(){
                         player_data.rec.width,
                         player_data.rec.height
                     };
-                    if (CheckCollisionRecs(neb_rec, player_rec)){
-                        game_state = GAME_OVER_LOSE;
+                    if (CheckCollisionRecs(neb_rec, player_rec) && invincibility_timer <= 0.0f){
+                        lives--;
+                        if (lives <= 0) {
+                            game_state = GAME_OVER_LOSE;
+                        } else {
+                            player_data.pos.y = window_height - player_data.rec.height;
+                            velocity = 0;
+                            is_in_air = false;
+                            can_double_jump = true;
+                            invincibility_timer = invincibility_duration;
+                        }
                     }
                 }
 
@@ -369,11 +388,14 @@ int main(){
                     DrawTextureRec(nebula, nebulae[i].rec, nebulae[i].pos, WHITE);
                 }
 
-                // draw player
-                DrawTextureRec(player, player_data.rec, player_data.pos, WHITE);
+                // draw player (flash while invincible)
+                if (invincibility_timer <= 0.0f || (int)(invincibility_timer * 10) % 2 == 0) {
+                    DrawTextureRec(player, player_data.rec, player_data.pos, WHITE);
+                }
 
                 // draw score HUD
                 DrawText(TextFormat("Score: %d", score), 10, 10, 20, WHITE);
+                DrawText(TextFormat("Lives: %d", lives), 10, 35, 20, WHITE);
                 break;
             }
 
@@ -437,6 +459,10 @@ int main(){
                     score = 0;
                     distance_accumulator = 0.0f;
                     score_saved = false;
+
+                    // reset lives
+                    lives = 3;
+                    invincibility_timer = 0.0f;
 
                     // transition to appropriate state
                     if (IsKeyPressed(KEY_L)) {
